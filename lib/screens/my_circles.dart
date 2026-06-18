@@ -13,6 +13,21 @@ class MyCircles extends StatelessWidget {
         ),
         actions: [IconButton(onPressed: () {}, icon: Icon(Icons.add))],
       ),
+      body: Padding(
+        padding: EdgeInsetsGeometry.all(16.0),
+        child: Column(
+          children: [
+            Column(
+              children: [
+                const Text(
+                  'Meine Favoriten',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
