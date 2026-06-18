@@ -113,7 +113,7 @@ class _LoginScreenState extends State<LoginScreen> {
               const Text(
                 'Orbit',
                 style: TextStyle(
-                  fontSize: 48,
+                  fontSize: 67,
                   fontWeight: FontWeight.bold,
                 ),
               ),
