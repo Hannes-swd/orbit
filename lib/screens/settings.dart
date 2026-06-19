@@ -9,7 +9,7 @@ class Settings extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    Future<void> _logout() async {
+    Future<void> logout() async {
       await GoogleSignIn().signOut();
       await FirebaseAuth.instance.signOut();
     }
@@ -22,7 +22,7 @@ class Settings extends StatelessWidget {
             Card(
               clipBehavior: Clip.hardEdge,
               child: InkWell(
-                onTap: _logout,
+                onTap: logout,
 
                 child: Padding(
                   padding: const EdgeInsets.symmetric(
