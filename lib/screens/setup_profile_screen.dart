@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+// packages
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:orbit/screens/main_screen.dart';
@@ -11,22 +13,40 @@ class SetupProfileScreen extends StatefulWidget {
 }
 
 class _SetupProfileScreenState extends State<SetupProfileScreen> {
+  // for steps
   final PageController _pageController = PageController();
   bool _isLoading = false;
 
-  // Seite 1
+  // to get input data
   final _nameController = TextEditingController();
   final _ageController = TextEditingController();
 
-  // Seite 2
+  // ! TEMPRORY!!!
   final List<String> _allInterests = [
-    'Sport', 'Musik', 'Gaming', 'Lesen', 'Kochen',
-    'Reisen', 'Fotografie', 'Kunst', 'Film', 'Technologie',
-    'Natur', 'Mode', 'Fitness', 'Yoga', 'Tanzen',
-    'Wissenschaft', 'Geschichte', 'Sprachen', 'Tiere', 'DIY',
+    'Sport',
+    'Musik',
+    'Gaming',
+    'Lesen',
+    'Kochen',
+    'Reisen',
+    'Fotografie',
+    'Kunst',
+    'Film',
+    'Technologie',
+    'Natur',
+    'Mode',
+    'Fitness',
+    'Yoga',
+    'Tanzen',
+    'Wissenschaft',
+    'Geschichte',
+    'Sprachen',
+    'Tiere',
+    'DIY',
   ];
   final Set<String> _selectedInterests = {};
 
+  // clean up controllers
   @override
   void dispose() {
     _pageController.dispose();
@@ -36,12 +56,15 @@ class _SetupProfileScreenState extends State<SetupProfileScreen> {
   }
 
   void _goToPage2() {
+    // to avoid no name input
     if (_nameController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Bitte gib deinen Namen ein.')),
       );
       return;
     }
+
+    // to avoid no age input
     final age = int.tryParse(_ageController.text.trim());
     if (age == null || age < 1 || age > 120) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -49,6 +72,8 @@ class _SetupProfileScreenState extends State<SetupProfileScreen> {
       );
       return;
     }
+
+    // go to second page
     _pageController.nextPage(
       duration: const Duration(milliseconds: 350),
       curve: Curves.easeInOut,
@@ -89,9 +114,9 @@ class _SetupProfileScreenState extends State<SetupProfileScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Fehler: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Fehler: $e')));
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -105,42 +130,48 @@ class _SetupProfileScreenState extends State<SetupProfileScreen> {
         child: PageView(
           controller: _pageController,
           physics: const NeverScrollableScrollPhysics(),
-          children: [
-            _buildPage1(),
-            _buildPage2(),
-          ],
+          children: [_buildPage1(), _buildPage2()],
         ),
       ),
     );
   }
 
   Widget _buildPage1() {
+    // for photo url
     final user = FirebaseAuth.instance.currentUser;
 
     return Padding(
       padding: const EdgeInsets.all(24),
+
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // progress bar
           _buildProgress(1),
+
+          // big space
           const SizedBox(height: 32),
+
+          // title - space - subtitle
           Text(
             'Erstelle dein Profil',
-            style: Theme.of(context)
-                .textTheme
-                .headlineMedium
-                ?.copyWith(fontWeight: FontWeight.bold),
+            style: Theme.of(
+              context,
+            ).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold),
           ),
+
           const SizedBox(height: 8),
           Text(
             'Wie sollen andere dich sehen?',
-            style: Theme.of(context)
-                .textTheme
-                .bodyMedium
-                ?.copyWith(color: Colors.grey),
+            style: Theme.of(
+              context,
+            ).textTheme.bodyMedium?.copyWith(color: Colors.grey),
           ),
-          const SizedBox(height: 40),
 
+          // big space
+          const SizedBox(height: 48),
+
+          // profile picture
           Center(
             child: CircleAvatar(
               radius: 50,
@@ -152,40 +183,89 @@ class _SetupProfileScreenState extends State<SetupProfileScreen> {
                   : null,
             ),
           ),
-          const SizedBox(height: 32),
 
+          // big space
+          const SizedBox(height: 48),
+
+          // name - space - age
           TextField(
             controller: _nameController,
-            decoration: const InputDecoration(
+            decoration: InputDecoration(
               labelText: 'Name',
-              border: OutlineInputBorder(),
-              prefixIcon: Icon(Icons.person_outline),
+              prefixIcon: Icon(
+                Icons.person_outline,
+                color: Theme.of(context).colorScheme.outline,
+              ),
+
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(
+                  color: Theme.of(context).colorScheme.outline,
+                  width: 1.5,
+                ),
+              ),
+
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(
+                  color: Theme.of(context).colorScheme.outline,
+                  width: 2,
+                ),
+              ),
             ),
             textCapitalization: TextCapitalization.words,
           ),
+
           const SizedBox(height: 16),
 
           TextField(
             controller: _ageController,
-            decoration: const InputDecoration(
+            decoration: InputDecoration(
               labelText: 'Alter',
-              border: OutlineInputBorder(),
-              prefixIcon: Icon(Icons.cake_outlined),
+              prefixIcon: Icon(
+                Icons.cake,
+                color: Theme.of(context).colorScheme.outline,
+              ),
+
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(
+                  color: Theme.of(context).colorScheme.outline,
+                  width: 1.5,
+                ),
+              ),
+
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(
+                  color: Theme.of(context).colorScheme.outline,
+                  width: 2,
+                ),
+              ),
             ),
             keyboardType: TextInputType.number,
           ),
 
+          // space till bottom
           const Spacer(),
 
+          // next
           SizedBox(
             width: double.infinity,
+
             child: ElevatedButton(
               onPressed: _goToPage2,
               style: ElevatedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 backgroundColor: Theme.of(context).colorScheme.primary,
               ),
-              child: Text('Weiter', style: TextStyle(color: Theme.of(context).colorScheme.onPrimary),),
+              child: Text(
+                'Weiter',
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onPrimary,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ),
           ),
         ],
@@ -196,11 +276,14 @@ class _SetupProfileScreenState extends State<SetupProfileScreen> {
   Widget _buildPage2() {
     return Padding(
       padding: const EdgeInsets.all(24),
+
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+
         children: [
           Row(
             children: [
+              // back to previous step button
               IconButton(
                 onPressed: () => _pageController.previousPage(
                   duration: const Duration(milliseconds: 350),
@@ -209,27 +292,36 @@ class _SetupProfileScreenState extends State<SetupProfileScreen> {
                 icon: const Icon(Icons.arrow_back),
                 padding: EdgeInsets.zero,
               ),
+
+              // small space
               const SizedBox(width: 8),
+
+              // progressbar
               Expanded(child: _buildProgress(2)),
             ],
           ),
+
+          // big space
           const SizedBox(height: 24),
 
+          // title - space - subtitle
           Text(
             'Deine Interessen',
-            style: Theme.of(context)
-                .textTheme
-                .headlineMedium
-                ?.copyWith(fontWeight: FontWeight.bold),
+            style: Theme.of(
+              context,
+            ).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold),
           ),
+
           const SizedBox(height: 8),
+
           Text(
             'Wähle mindestens ein Interesse aus.',
-            style: Theme.of(context)
-                .textTheme
-                .bodyMedium
-                ?.copyWith(color: Colors.grey),
+            style: Theme.of(
+              context,
+            ).textTheme.bodyMedium?.copyWith(color: Colors.grey),
           ),
+
+          // big space
           const SizedBox(height: 24),
 
           Expanded(
@@ -267,8 +359,15 @@ class _SetupProfileScreenState extends State<SetupProfileScreen> {
                     onPressed: _saveProfile,
                     style: ElevatedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 16),
+                      backgroundColor: Theme.of(context).colorScheme.primary,
                     ),
-                    child: const Text('Fertig'),
+                    child: Text(
+                      'Fertig',
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.onPrimary,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                   ),
           ),
         ],
@@ -277,11 +376,13 @@ class _SetupProfileScreenState extends State<SetupProfileScreen> {
   }
 
   Widget _buildProgress(int step) {
+    // color theme presets
     final primary = Theme.of(context).colorScheme.primary;
     final inactive = Colors.grey.shade300;
 
     return Row(
       children: [
+        // first step
         Expanded(
           child: Container(
             height: 4,
@@ -291,7 +392,11 @@ class _SetupProfileScreenState extends State<SetupProfileScreen> {
             ),
           ),
         ),
+
+        // space
         const SizedBox(width: 8),
+
+        // second step
         Expanded(
           child: Container(
             height: 4,
@@ -301,7 +406,11 @@ class _SetupProfileScreenState extends State<SetupProfileScreen> {
             ),
           ),
         ),
+
+        // space
         const SizedBox(width: 12),
+
+        // step indicator
         Text('$step / 2', style: Theme.of(context).textTheme.bodySmall),
       ],
     );
