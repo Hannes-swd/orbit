@@ -110,6 +110,7 @@ class Settings extends StatelessWidget {
                   ),
                   child: Row(
                     children: [
+                      // Text
                       Expanded(
                         child: Row(
                           children: [
@@ -123,6 +124,8 @@ class Settings extends StatelessWidget {
                           ],
                         ),
                       ),
+
+                      // > icon
                       Icon(
                         Icons.chevron_right,
                         color: Theme.of(context).colorScheme.onSurface,
