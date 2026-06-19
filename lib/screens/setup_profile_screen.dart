@@ -324,6 +324,7 @@ class _SetupProfileScreenState extends State<SetupProfileScreen> {
           // big space
           const SizedBox(height: 24),
 
+          // elements to select
           Expanded(
             child: SingleChildScrollView(
               child: Wrap(
@@ -332,8 +333,21 @@ class _SetupProfileScreenState extends State<SetupProfileScreen> {
                 children: _allInterests.map((interest) {
                   final selected = _selectedInterests.contains(interest);
                   return FilterChip(
+                    backgroundColor: const Color.fromARGB(255, 238, 238, 238),
+                    showCheckmark: false,
+                    selectedColor: const Color(0xFFEEF0FB),
                     label: Text(interest),
                     selected: selected,
+
+                    labelStyle: TextStyle(
+                      color: selected
+                          ? const Color.fromARGB(255, 83, 52, 141)
+                          : Colors.black,
+                    ),
+
+                    side: selected
+                        ? const BorderSide(color: Color(0xFFC5CAE9), width: 1.5)
+                        : BorderSide.none,
                     onSelected: (val) {
                       setState(() {
                         if (val) {
@@ -349,8 +363,7 @@ class _SetupProfileScreenState extends State<SetupProfileScreen> {
             ),
           ),
 
-          const SizedBox(height: 16),
-
+          // finish button
           SizedBox(
             width: double.infinity,
             child: _isLoading
@@ -377,8 +390,8 @@ class _SetupProfileScreenState extends State<SetupProfileScreen> {
 
   Widget _buildProgress(int step) {
     // color theme presets
-    final primary = Theme.of(context).colorScheme.primary;
-    final inactive = Colors.grey.shade300;
+    final active = Colors.blue[500];
+    final inactive = Colors.blue[100];
 
     return Row(
       children: [
@@ -387,7 +400,7 @@ class _SetupProfileScreenState extends State<SetupProfileScreen> {
           child: Container(
             height: 4,
             decoration: BoxDecoration(
-              color: primary,
+              color: active,
               borderRadius: BorderRadius.circular(2),
             ),
           ),
@@ -401,7 +414,7 @@ class _SetupProfileScreenState extends State<SetupProfileScreen> {
           child: Container(
             height: 4,
             decoration: BoxDecoration(
-              color: step >= 2 ? primary : inactive,
+              color: step >= 2 ? active : inactive,
               borderRadius: BorderRadius.circular(2),
             ),
           ),
