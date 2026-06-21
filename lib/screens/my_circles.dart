@@ -250,7 +250,7 @@ class _MyCirclesState extends State<MyCircles> {
                                     'tags': selectedTags.toList(),
                                     'description': '',
                                     'imageUrl': '',
-                                    'imageBase64': ?imageBase64,
+                                    if (imageBase64 != null) 'imageBase64': imageBase64,
                                   };
 
                                   await FirebaseFirestore.instance

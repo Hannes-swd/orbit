@@ -23,6 +23,24 @@ class _MainScreenState extends State<MainScreen> {
   void initState() {
     super.initState();
     _saveFcmToken();
+    _ensureDisplayNameLower();
+  }
+
+  Future<void> _ensureDisplayNameLower() async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
+    final doc = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(uid)
+        .get();
+    final data = doc.data();
+    if (data == null || data.containsKey('displayNameLower')) return;
+    final displayName = data['displayName'] as String? ?? '';
+    if (displayName.isEmpty) return;
+    await FirebaseFirestore.instance
+        .collection('users')
+        .doc(uid)
+        .update({'displayNameLower': displayName.toLowerCase()});
   }
 
   Future<void> _saveFcmToken() async {

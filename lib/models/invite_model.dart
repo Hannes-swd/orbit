@@ -4,7 +4,8 @@ class CircleInvite {
   final String id;
   final String circleId;
   final String circleName;
-  final String invitedEmail;
+  final String invitedUserId;
+  final String invitedDisplayName;
   final String invitedBy;
   final DateTime invitedAt;
   final String status;
@@ -13,7 +14,8 @@ class CircleInvite {
     required this.id,
     required this.circleId,
     required this.circleName,
-    required this.invitedEmail,
+    required this.invitedUserId,
+    required this.invitedDisplayName,
     required this.invitedBy,
     required this.invitedAt,
     required this.status,
@@ -23,9 +25,10 @@ class CircleInvite {
     final data = doc.data() as Map<String, dynamic>;
     return CircleInvite(
       id: doc.id,
-      circleId: data['circleId'] ?? doc.reference.parent.parent?.id ?? '',
+      circleId: data['circleId'] ?? '',
       circleName: data['circleName'] ?? '',
-      invitedEmail: data['invitedEmail'] ?? '',
+      invitedUserId: data['invitedUserId'] ?? '',
+      invitedDisplayName: data['invitedDisplayName'] ?? '',
       invitedBy: data['invitedBy'] ?? '',
       invitedAt: (data['invitedAt'] as Timestamp).toDate(),
       status: data['status'] ?? 'pending',
