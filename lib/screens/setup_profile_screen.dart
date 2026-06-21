@@ -175,7 +175,7 @@ class _SetupProfileScreenState extends State<SetupProfileScreen> {
             ).textTheme.bodyMedium?.copyWith(color: Colors.grey),
           ),
 
-          // big space
+          // big spacebv
           const SizedBox(height: 48),
 
           // profile picture
