@@ -97,11 +97,13 @@ class _SetupProfileScreenState extends State<SetupProfileScreen> {
 
     try {
       final user = FirebaseAuth.instance.currentUser!;
+      final displayName = _nameController.text.trim();
 
       await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
         'googleId': user.uid,
         'email': user.email,
-        'displayName': _nameController.text.trim(),
+        'displayName': displayName,
+        'displayNameLower': displayName.toLowerCase(),
         'age': int.parse(_ageController.text.trim()),
         'profileImageUrl': user.photoURL,
         'interests': _selectedInterests.toList(),

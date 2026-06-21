@@ -6,11 +6,13 @@ import '../models/invite_model.dart';
 class InviteMembersScreen extends StatefulWidget {
   final String circleId;
   final String circleName;
+  final List<String> members;
 
   const InviteMembersScreen({
     super.key,
     required this.circleId,
     required this.circleName,
+    required this.members,
   });
 
   @override
@@ -18,10 +20,13 @@ class InviteMembersScreen extends StatefulWidget {
 }
 
 class _InviteMembersScreenState extends State<InviteMembersScreen> {
-  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _nameController = TextEditingController();
   List<CircleInvite> _invites = [];
   bool _isLoading = true;
+  bool _isSearching = false;
   bool _isSending = false;
+  Map<String, dynamic>? _foundUser;
+  String? _searchError;
 
   @override
   void initState() {
@@ -31,7 +36,7 @@ class _InviteMembersScreenState extends State<InviteMembersScreen> {
 
   @override
   void dispose() {
-    _emailController.dispose();
+    _nameController.dispose();
     super.dispose();
   }
 
@@ -53,42 +58,86 @@ class _InviteMembersScreenState extends State<InviteMembersScreen> {
     });
   }
 
+  Future<void> _searchUser() async {
+    final input = _nameController.text.trim();
+    if (input.isEmpty) return;
+
+    setState(() {
+      _isSearching = true;
+      _foundUser = null;
+      _searchError = null;
+    });
+
+    try {
+      final snapshot = await FirebaseFirestore.instance
+          .collection('users')
+          .where('displayNameLower', isEqualTo: input.toLowerCase())
+          .limit(1)
+          .get();
+
+      if (snapshot.docs.isEmpty) {
+        setState(() => _searchError = 'Nutzer "$input" nicht gefunden.');
+        return;
+      }
+
+      final doc = snapshot.docs.first;
+      setState(() => _foundUser = {'uid': doc.id, ...doc.data()});
+    } catch (e) {
+      setState(() => _searchError = 'Fehler bei der Suche.');
+    } finally {
+      if (mounted) setState(() => _isSearching = false);
+    }
+  }
+
   Future<void> _sendInvite() async {
-    final email = _emailController.text.trim().toLowerCase();
-    if (email.isEmpty) {
+    if (_foundUser == null) return;
+    final currentUid = FirebaseAuth.instance.currentUser!.uid;
+    final targetUid = _foundUser!['uid'] as String;
+    final targetDisplayName = _foundUser!['displayName'] as String? ?? '';
+
+    // Security checks
+    if (targetUid == currentUid) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Bitte eine E-Mail-Adresse eingeben.')),
+        const SnackBar(content: Text('Du kannst dich nicht selbst einladen.')),
+      );
+      return;
+    }
+
+    if (widget.members.contains(targetUid)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('"$targetDisplayName" ist bereits Mitglied.')),
       );
       return;
     }
 
     final alreadyInvited = _invites.any(
-      (inv) => inv.invitedEmail.toLowerCase() == email,
+      (inv) => inv.invitedUserId == targetUid && inv.status == 'pending',
     );
     if (alreadyInvited) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('$email wurde bereits eingeladen.')),
+        SnackBar(content: Text('"$targetDisplayName" wurde bereits eingeladen.')),
       );
       return;
     }
 
     setState(() => _isSending = true);
-
     try {
-      final uid = FirebaseAuth.instance.currentUser!.uid;
       await FirebaseFirestore.instance.collection('invites').add({
-        'invitedEmail': email,
-        'invitedBy': uid,
+        'invitedUserId': targetUid,
+        'invitedDisplayName': targetDisplayName,
+        'invitedBy': currentUid,
         'invitedAt': FieldValue.serverTimestamp(),
         'status': 'pending',
         'circleId': widget.circleId,
         'circleName': widget.circleName,
       });
 
-      _emailController.clear();
+      _nameController.clear();
+      setState(() => _foundUser = null);
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Einladung gesendet an $email')),
+          SnackBar(content: Text('Einladung an "$targetDisplayName" gesendet.')),
         );
       }
       await _loadInvites();
@@ -135,34 +184,37 @@ class _InviteMembersScreenState extends State<InviteMembersScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Einladungen verwalten'),
-      ),
+      appBar: AppBar(title: const Text('Einladungen verwalten')),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Search row
             Row(
               children: [
                 Expanded(
                   child: TextField(
-                    controller: _emailController,
-                    keyboardType: TextInputType.emailAddress,
+                    controller: _nameController,
                     decoration: InputDecoration(
-                      labelText: 'E-Mail-Adresse eingeben',
-                      hintText: 'person@example.com',
+                      labelText: 'Name eingeben',
+                      hintText: 'z.B. Hannes',
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      prefixIcon: const Icon(Icons.email_outlined),
+                      prefixIcon: const Icon(Icons.person_search_outlined),
                     ),
-                    onSubmitted: (_) => _sendInvite(),
+                    textCapitalization: TextCapitalization.words,
+                    onSubmitted: (_) => _searchUser(),
+                    onChanged: (_) => setState(() {
+                      _foundUser = null;
+                      _searchError = null;
+                    }),
                   ),
                 ),
                 const SizedBox(width: 12),
                 FilledButton(
-                  onPressed: _isSending ? null : _sendInvite,
+                  onPressed: _isSearching ? null : _searchUser,
                   style: FilledButton.styleFrom(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 20,
@@ -172,7 +224,7 @@ class _InviteMembersScreenState extends State<InviteMembersScreen> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  child: _isSending
+                  child: _isSearching
                       ? const SizedBox(
                           width: 20,
                           height: 20,
@@ -181,11 +233,53 @@ class _InviteMembersScreenState extends State<InviteMembersScreen> {
                             color: Colors.white,
                           ),
                         )
-                      : const Icon(Icons.add),
+                      : const Icon(Icons.search),
                 ),
               ],
             ),
-            const SizedBox(height: 24),
+
+            const SizedBox(height: 12),
+
+            // Search result
+            if (_searchError != null)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Text(
+                  _searchError!,
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.error,
+                    fontSize: 13,
+                  ),
+                ),
+              )
+            else if (_foundUser != null)
+              Card(
+                margin: const EdgeInsets.only(bottom: 8),
+                child: ListTile(
+                  leading: const CircleAvatar(
+                    child: Icon(Icons.person_outline),
+                  ),
+                  title: Text(
+                    _foundUser!['displayName'] as String? ?? '',
+                    style: const TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                  trailing: FilledButton(
+                    onPressed: _isSending ? null : _sendInvite,
+                    child: _isSending
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
+                          )
+                        : const Text('Einladen'),
+                  ),
+                ),
+              ),
+
+            const SizedBox(height: 8),
             Text(
               'Eingeladene Personen',
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
@@ -213,7 +307,7 @@ class _InviteMembersScreenState extends State<InviteMembersScreen> {
                               leading: const CircleAvatar(
                                 child: Icon(Icons.person_outline),
                               ),
-                              title: Text(invite.invitedEmail),
+                              title: Text(invite.invitedDisplayName),
                               trailing: _buildStatusChip(invite.status),
                             );
                           },

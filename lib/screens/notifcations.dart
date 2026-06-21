@@ -8,7 +8,7 @@ class Notifcations extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final email = FirebaseAuth.instance.currentUser?.email ?? '';
+    final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
 
     return Scaffold(
       appBar: AppBar(
@@ -20,7 +20,7 @@ class Notifcations extends StatelessWidget {
       body: StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance
             .collection('invites')
-            .where('invitedEmail', isEqualTo: email)
+            .where('invitedUserId', isEqualTo: uid)
             .snapshots(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
@@ -149,7 +149,7 @@ class _InviteCardState extends State<_InviteCard> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Einladung zu "${widget.invite.circleName}"',
+                        'Einladung zum Kreis "${widget.invite.circleName}"',
                         style: const TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 15,
