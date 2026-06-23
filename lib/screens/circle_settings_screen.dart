@@ -177,6 +177,18 @@ class _CircleSettingsScreenState extends State<CircleSettingsScreen> {
     );
   }
 
+  // show bottom sheet with all banned users
+  Future<void> _showBannedSheet() async {
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => _BannedSheet(circleId: widget.circle.id),
+    );
+  }
+
   // delete circle and all its invites
   Future<void> _deleteGroup() async {
     final confirmed = await showDialog<bool>(
@@ -373,6 +385,16 @@ class _CircleSettingsScreenState extends State<CircleSettingsScreen> {
 
             const Divider(),
 
+            // banned members
+            ListTile(
+              leading: const Icon(Icons.block_outlined),
+              title: const Text('Gebannte Mitglieder'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: _showBannedSheet,
+            ),
+
+            const Divider(),
+
             // delete
             ListTile(
               leading: const Icon(Icons.delete_outline, color: Colors.red),
@@ -385,6 +407,155 @@ class _CircleSettingsScreenState extends State<CircleSettingsScreen> {
           ],
         ),
       ),
+    );
+  }
+}
+
+// bottom sheet listing banned users with unban option
+class _BannedSheet extends StatefulWidget {
+  final String circleId;
+  const _BannedSheet({required this.circleId});
+
+  @override
+  State<_BannedSheet> createState() => _BannedSheetState();
+}
+
+class _BannedSheetState extends State<_BannedSheet> {
+  List<Map<String, dynamic>> _banned = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    final doc = await FirebaseFirestore.instance
+        .collection('circles')
+        .doc(widget.circleId)
+        .get();
+    final bannedUids = List<String>.from(doc.data()?['banned'] ?? []);
+
+    if (bannedUids.isEmpty) {
+      setState(() => _isLoading = false);
+      return;
+    }
+
+    final userDocs = await Future.wait(
+      bannedUids.map(
+        (uid) => FirebaseFirestore.instance.collection('users').doc(uid).get(),
+      ),
+    );
+
+    setState(() {
+      _banned = userDocs
+          .map((d) => {'uid': d.id, ...d.data() ?? {}})
+          .toList();
+      _banned.sort((a, b) =>
+          ((a['displayName'] as String?) ?? '')
+              .compareTo((b['displayName'] as String?) ?? ''));
+      _isLoading = false;
+    });
+  }
+
+  Future<void> _unban(String uid) async {
+    try {
+      await FirebaseFirestore.instance
+          .collection('circles')
+          .doc(widget.circleId)
+          .update({'banned': FieldValue.arrayRemove([uid])});
+      setState(() => _banned.removeWhere((m) => m['uid'] == uid));
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Fehler beim Entbannen.')),
+        );
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const SizedBox(height: 8),
+        Container(
+          width: 36,
+          height: 4,
+          decoration: BoxDecoration(
+            color: Colors.grey[300],
+            borderRadius: BorderRadius.circular(2),
+          ),
+        ),
+        const SizedBox(height: 16),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: Row(
+            children: [
+              const Text(
+                'Gebannte Mitglieder',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 8),
+        if (_isLoading)
+          const Padding(
+            padding: EdgeInsets.all(32),
+            child: CircularProgressIndicator(),
+          )
+        else if (_banned.isEmpty)
+          Padding(
+            padding: const EdgeInsets.all(32),
+            child: Text(
+              'Niemand ist gebannt.',
+              style: TextStyle(color: Colors.grey[600]),
+            ),
+          )
+        else
+          ConstrainedBox(
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(context).size.height * 0.5,
+            ),
+            child: ListView.builder(
+              shrinkWrap: true,
+              itemCount: _banned.length,
+              itemBuilder: (context, index) {
+                final member = _banned[index];
+                final uid = member['uid'] as String;
+                final name = member['displayName'] as String? ?? 'Unbekannt';
+                final base64Str = member['profileImageBase64'] as String?;
+                final url = member['profileImageUrl'] as String?;
+
+                Widget avatar;
+                if (base64Str != null && base64Str.isNotEmpty) {
+                  avatar = CircleAvatar(
+                    backgroundImage: MemoryImage(base64Decode(base64Str)),
+                  );
+                } else if (url != null && url.isNotEmpty) {
+                  avatar = CircleAvatar(backgroundImage: NetworkImage(url));
+                } else {
+                  avatar = const CircleAvatar(
+                    child: Icon(Icons.person_outline, size: 20),
+                  );
+                }
+
+                return ListTile(
+                  leading: avatar,
+                  title: Text(name),
+                  trailing: TextButton(
+                    onPressed: () => _unban(uid),
+                    child: const Text('Entbannen'),
+                  ),
+                );
+              },
+            ),
+          ),
+        SizedBox(height: MediaQuery.of(context).padding.bottom + 20),
+      ],
     );
   }
 }
