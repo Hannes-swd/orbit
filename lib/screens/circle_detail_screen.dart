@@ -374,6 +374,61 @@ class _MembersSheetState extends State<_MembersSheet> {
     }
   }
 
+  Future<void> _banSelected() async {
+    final count = _selected.length;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(count == 1 ? 'Mitglied bannen?' : '$count Mitglieder bannen?'),
+        content: Text(
+          count == 1
+              ? 'Diese Person wird entfernt und kann der Gruppe nicht mehr beitreten.'
+              : '$count Personen werden entfernt und können der Gruppe nicht mehr beitreten.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Abbrechen'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.orange),
+            child: const Text('Bannen'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    setState(() => _isBusy = true);
+    try {
+      final toBan = _selected.toList();
+      await FirebaseFirestore.instance
+          .collection('circles')
+          .doc(widget.circleId)
+          .update({
+        'banned': FieldValue.arrayUnion(toBan),
+        'members': FieldValue.arrayRemove(toBan),
+        'memberCount': FieldValue.increment(-toBan.length),
+        'operators': FieldValue.arrayRemove(toBan),
+      });
+      setState(() {
+        _members.removeWhere((m) => _selected.contains(m['uid'] as String));
+        _operators.removeAll(toBan);
+        _selected.clear();
+        _selectionMode = false;
+      });
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Fehler beim Bannen.')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isBusy = false);
+    }
+  }
+
   Future<void> _transferAdmin() async {
     final uid = _selected.first;
     final memberData = _members.firstWhere((m) => m['uid'] == uid);
@@ -627,6 +682,12 @@ class _MembersSheetState extends State<_MembersSheet> {
                   label: '${_selected.length} entfernen',
                   onTap: _isBusy ? null : _removeSelected,
                   color: Colors.red,
+                ),
+                _buildAction(
+                  icon: Icons.block,
+                  label: 'Bannen',
+                  onTap: _isBusy ? null : _banSelected,
+                  color: Colors.orange,
                 ),
                 if (singleSelected != null) ...[
                   singleIsOperator

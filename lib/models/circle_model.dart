@@ -13,6 +13,7 @@ class Circle {
   final String description;
   final String imageUrl;
   final List<String> operators;
+  final List<String> banned;
 
   Circle({
     required this.id,
@@ -26,6 +27,7 @@ class Circle {
     required this.description,
     required this.imageUrl,
     this.operators = const [],
+    this.banned = const [],
   });
 
   // create circle from firestore document
@@ -43,6 +45,7 @@ class Circle {
       description: data['description'] ?? '',
       imageUrl: data['imageUrl'] ?? '',
       operators: List<String>.from(data['operators'] ?? []),
+      banned: List<String>.from(data['banned'] ?? []),
     );
   }
 }
